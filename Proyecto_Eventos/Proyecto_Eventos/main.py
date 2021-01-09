@@ -1,2 +1,0 @@
-from conexion import *
-menuEasy()
