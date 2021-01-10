@@ -10,6 +10,7 @@ from datetime import datetime
 #sql2="Insert into user values (2,'thiago')"
 #cursor.execute(sql2)
 #conection.commit()
+
 def getConection():
     conection = pymysql.connect(
     host="localhost",
@@ -20,6 +21,7 @@ def getConection():
     return conection
 
 Conexion=getConection()
+
 def consultarClientes():
     conection=Conexion
     cursor=conection.cursor()
@@ -29,6 +31,7 @@ def consultarClientes():
     conection.close()
     for fila in datos:
         print(fila)
+        
 def consultarArtistas():
     conection=Conexion
     cursor = conection.cursor()
@@ -38,6 +41,7 @@ def consultarArtistas():
     conection.close()
     for fila in datos:
         print(fila)
+        
 def consultarDatos(dato):
     conection = Conexion
     cursor = conection.cursor()
@@ -47,6 +51,7 @@ def consultarDatos(dato):
     conection.close()
     for fila in datos:
         print(fila)
+        
 def menuEasy():
     verdad=True
     while(verdad):
@@ -79,6 +84,7 @@ def menuEasy():
         elif (op == "7"):
             consultarDatos("calificacion")
             verdad = False
+            
 def CreacionCuentaArtista(correo,contra,nombre,apellido,profesion,descripcion):
     conection =Conexion
     cursor = conection.cursor()
@@ -89,6 +95,7 @@ def CreacionCuentaArtista(correo,contra,nombre,apellido,profesion,descripcion):
     cursor.close()
     conection.close()
     print("se pudo")
+    
 def conversor(tupla):
     cadena=" "
     for elemento in tupla:
@@ -107,6 +114,7 @@ def consultarEventosViejos(correo):
         #print(fila)
         #print(type(fila[0]))
         print(conversor(fila))
+        
 def crearEvento(titulo,descripcion,duracion,fechaInicio,tipo,costo,correo_Artista):
     conection = Conexion
     cursor = conection.cursor()
@@ -137,6 +145,7 @@ def buscarAsistentes(IdEvento):
             print("No a asistido ningun cliente a este evento o no existe ningun evento con esta ID")
     except:
         print("No existe ningun evento con esta ID")
+        
 def VerificarExistencia():
     correo=input("Ingrese correo: ")
     contra=input("Ingrese contraseña: ")
@@ -162,6 +171,7 @@ def VerificarExistencia():
     cursor2.close()
     cursor.close()
     conection.close()
+    
 def creacionCuentaCliente(correo,contra, nombre, apellido):
     conection = getConection()
     cursor = conection.cursor()
@@ -171,6 +181,7 @@ def creacionCuentaCliente(correo,contra, nombre, apellido):
     cursor.close()
     conection.close()
     print("Cuenta Creada")
+    
 def consultarEventosCliente(correo):
     conection = getConection()
     cursor = conection.cursor()
@@ -182,6 +193,7 @@ def consultarEventosCliente(correo):
     print("ID_Evento/  Titulo/   Descripcion/    Duracion/   FechaInicio/   Tipo/   Costo/   Correo_Artista")
     for fila in datos:
         print(conversor(fila))
+        
 def Actualidad_Evento(d1):
     #d1 es la fecha de cada ecento respecto a la fecha actual
     d1 = datetime.strptime(d1, "%Y-%m-%d")
@@ -190,6 +202,7 @@ def Actualidad_Evento(d1):
     d3 = datetime.strptime(fecha, "%Y-%m-%d")
     #print((d1 - d3).days)
     return (d1 - d3).days
+
 def MostrarEventosActuales():
     conection = getConection()
     cursor = conection.cursor()
@@ -202,6 +215,7 @@ def MostrarEventosActuales():
         #print(str(fila[4]))
         if Actualidad_Evento(str(fila[4]))>=0:
             print(conversor(fila))
+            
 def elegirEventoCliente(correo):
     try:
         print("|||||   Asistencia a Evento   |||||")
@@ -209,7 +223,7 @@ def elegirEventoCliente(correo):
         id=input("Elija la ID del evento que desea asistir")
         conection = getConection()
         cursor = conection.cursor()
-        cursor.execute("insert into asistencia values (0,'"+id+"','"+correo+"',true")
+        cursor.execute("insert into asistencia values (0,'"+id+"','"+correo+"',true)")
         conection.commit()
         cursor.close()
         conection.close()
@@ -217,7 +231,48 @@ def elegirEventoCliente(correo):
         return True
     except:
         return False
-
+    
+def MostrarEventosActualesParaPagar():
+    conection = getConection()
+    cursor = conection.cursor()
+    cursor.execute("select evento.IdEvento,evento.titulo,evento.descripcion,evento.duracion,evento.fechaInicio,evento.tipo,evento.costo,evento.correoArt  from evento having evento.costo>0")
+    datos = cursor.fetchall()
+    cursor.close()
+    conection.close()
+    print("ID_Evento/  Titulo/   Descripcion/    Duracion/   FechaInicio/   Tipo/   Costo/   Correo_Artista")
+    for fila in datos:
+        #print(str(fila[4]))
+        if Actualidad_Evento(str(fila[4]))>=0:
+            print(conversor(fila))
+            
+def pagarEventoCliente(correo):
+    fecha = datetime.now()
+    try:
+        print("|||||   Pagar Evento   |||||")
+        MostrarEventosActualesParaPagar()
+        id=input("Elija la ID del evento que desea pagar")
+        conection = getConection()
+        cursor = conection.cursor()
+        cursor.execute("insert into pago values ('"+correo+"','"+id+"','"+fecha+"',TRUE,'Tarjeta')")
+        conection.commit()
+        cursor.close()
+        conection.close()
+        print("Asistencia cumplida")
+        return True
+    except:
+        return False
+   
+def consultarEventoPagadoCliente(correo):
+    conection = getConection()
+    cursor = conection.cursor()
+    cursor.execute("Select evento.IdEvento,evento.titulo,evento.descripcion,evento.duracion,evento.fechaInicio,evento.tipo,evento.costo,evento.correoArt from evento join pago on evento.IdEvento=pago.evento join cliente using(correo) where cliente.correo='"+ correo + "' and pago.pagado=TRUE")
+    datos = cursor.fetchall()
+    cursor.close()
+    conection.close()
+    print("ID_Evento/  Titulo/   Descripcion/    Duracion/   FechaInicio/   Tipo/   Costo/   Correo_Artista")
+    for fila in datos:
+        print(conversor(fila))
+    
 def Menu():
     verdad=True
     correo = ""
@@ -264,8 +319,26 @@ def Menu():
                         correo=correo2
                         verdad2=False
                     except:
-                        print("||||||  Este correo ya a sido registrado  |||||")
+                        print("||||||  Este correo ya ha sido registrado  |||||")
             #Falta crear la opcion para creacion de cuenta cliente
+            if op2=="2":
+                #Creacion de cuenta cliente
+                #creacionCuentaCliente(correo,contra, nombre, apellido)
+                print("|||||  Creación de cuenta Cliente  |||||")
+                bandera = True
+                while(bandera):
+                    try:
+                        correo3=input("Ingrese su correo: ")
+                        contra=input("Ingrese contraseña: ")
+                        nombre=input("Ingrese su nombre: ")
+                        apellido=input("Ingrese su apellido: ")
+                        creacionCuentaCliente(correo, contra, nombre, apellido)
+                        print("Su cuenta ha sido creada con exito!")
+                        tipo="cliente"
+                        correo=correo3
+                        bandera=False
+                   except:
+                    print("||||||  Este correo ya ha sido registrado  |||||")
     verdad3=True
     while(verdad3):
         if tipo=="artista":
@@ -308,7 +381,25 @@ def Menu():
             elif op3=="5":
                 verdad3=False
         #Falta la creacion del if cuando tipo="cliente"
-
+        if tipo=="cliente":
+            print("|||||   Bienvenido Cliente   ||||||")
+            print("1. Consultar eventos")
+            print("2. Elegir un evento")
+            print("3. Pagar evento")
+            print("4. Consultar eventos pagados")
+            print("5. Salir")
+            op4= input("Elija una opcion: ")
+            if op4=="1":
+                 consultarEventosCliente(correo)
+            elif op4=="2":
+                elegirEventoCliente(correo)
+            elif op4=="3":
+                pagarEventoCliente(correo)
+            elif op4=="4":
+                consultarEventoPagadoCliente(correo)
+            elif op4=="5":
+                verdad3=False
+                
 
     print(tipo)
     print(correo)
