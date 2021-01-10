@@ -1,4 +1,5 @@
 import pymysql
+from datetime import datetime
 #conection=pymysql.connect(
 #    host="localhost",
 #    user="root",
@@ -18,9 +19,9 @@ def getConection():
     )
     return conection
 
-
+Conexion=getConection()
 def consultarClientes():
-    conection=getConection()
+    conection=Conexion
     cursor=conection.cursor()
     cursor.execute("Select * from cliente")
     datos=cursor.fetchall()
@@ -29,7 +30,7 @@ def consultarClientes():
     for fila in datos:
         print(fila)
 def consultarArtistas():
-    conection = getConection()
+    conection=Conexion
     cursor = conection.cursor()
     cursor.execute("Select * from artista")
     datos = cursor.fetchall()
@@ -38,7 +39,7 @@ def consultarArtistas():
     for fila in datos:
         print(fila)
 def consultarDatos(dato):
-    conection = getConection()
+    conection = Conexion
     cursor = conection.cursor()
     cursor.execute("Select * from "+dato)
     datos = cursor.fetchall()
@@ -79,7 +80,7 @@ def menuEasy():
             consultarDatos("calificacion")
             verdad = False
 def CreacionCuentaArtista(correo,contra,nombre,apellido,profesion,descripcion):
-    conection = getConection()
+    conection =Conexion
     cursor = conection.cursor()
     #OJO con las comillas simples en cada variable
     cursor.execute("INSERT INTO Artista(correo,nombre,apellido,profesion,descripcion) VALUES('"+correo+"','"+contra+"','"+nombre+"','"+apellido+"','"+profesion+"','"+descripcion+"')")
@@ -94,7 +95,7 @@ def conversor(tupla):
         cadena=cadena+(str(elemento)+"  ||||   ")
     return cadena
 def consultarEventosViejos(correo):
-    conection = getConection()
+    conection = Conexion
     cursor = conection.cursor()
 
     cursor.execute("Select * from evento where correoArt='"+correo+"'")
@@ -107,7 +108,7 @@ def consultarEventosViejos(correo):
         #print(type(fila[0]))
         print(conversor(fila))
 def crearEvento(titulo,descripcion,duracion,fechaInicio,tipo,costo,correo_Artista):
-    conection = getConection()
+    conection = Conexion
     cursor = conection.cursor()
     # OJO con las comillas simples en cada variable
     cursor.execute(
@@ -118,7 +119,7 @@ def crearEvento(titulo,descripcion,duracion,fechaInicio,tipo,costo,correo_Artist
     conection.close()
 
 def buscarAsistentes(IdEvento):
-    conection = getConection()
+    conection = Conexion
     cursor = conection.cursor()
     cursor.execute("select cli.correo,cli.nombre,cli.apellido from asistencia as asis join cliente as cli on asis.cliente=cli.correo where asis.evento="+str(IdEvento))
     try:
@@ -139,7 +140,7 @@ def buscarAsistentes(IdEvento):
 def VerificarExistencia():
     correo=input("Ingrese correo: ")
     contra=input("Ingrese contraseña: ")
-    conection = getConection()
+    conection = Conexion
     cursor = conection.cursor()
     cursor2=conection.cursor()
     cursor.execute("select * from cliente where correo='"+correo+"' and contra='"+contra+"'")
@@ -161,6 +162,61 @@ def VerificarExistencia():
     cursor2.close()
     cursor.close()
     conection.close()
+def creacionCuentaCliente(correo,contra, nombre, apellido):
+    conection = getConection()
+    cursor = conection.cursor()
+    cursor.execute(
+        "INSERT INTO cliente values (correo,nombre,apellido)  VALUES(('" + correo +"','"+contra+ "','" + nombre + "','" + apellido + "')")
+    conection.commit()
+    cursor.close()
+    conection.close()
+    print("Cuenta Creada")
+def consultarEventosCliente(correo):
+    conection = getConection()
+    cursor = conection.cursor()
+    cursor.execute("Select evento.IdEvento,evento.titulo,evento.descripcion,evento.duracion,evento.fechaInicio,evento.tipo,evento.costo,evento.correoArt from evento join asistencia on evento.IdEvento=asistencia.evento join cliente on asistencia.cliente=cliente.correo where cliente.correo='"+ correo + "' and asistencia.asiste="+str(1))
+
+    datos = cursor.fetchall()
+    cursor.close()
+    conection.close()
+    print("ID_Evento/  Titulo/   Descripcion/    Duracion/   FechaInicio/   Tipo/   Costo/   Correo_Artista")
+    for fila in datos:
+        print(conversor(fila))
+def Actualidad_Evento(d1):
+    #d1 es la fecha de cada ecento respecto a la fecha actual
+    d1 = datetime.strptime(d1, "%Y-%m-%d")
+    x=datetime.now()
+    fecha=str(x.year)+"-"+str(x.month)+"-"+str(x.day)
+    d3 = datetime.strptime(fecha, "%Y-%m-%d")
+    #print((d1 - d3).days)
+    return (d1 - d3).days
+def MostrarEventosActuales():
+    conection = getConection()
+    cursor = conection.cursor()
+    cursor.execute("select evento.IdEvento,evento.titulo,evento.descripcion,evento.duracion,evento.fechaInicio,evento.tipo,evento.costo,evento.correoArt  from evento")
+    datos = cursor.fetchall()
+    cursor.close()
+    conection.close()
+    print("ID_Evento/  Titulo/   Descripcion/    Duracion/   FechaInicio/   Tipo/   Costo/   Correo_Artista")
+    for fila in datos:
+        #print(str(fila[4]))
+        if Actualidad_Evento(str(fila[4]))>=0:
+            print(conversor(fila))
+def elegirEventoCliente(correo):
+    try:
+        print("|||||   Asistencia a Evento   |||||")
+        MostrarEventosActuales()
+        id=input("Elija la ID del evento que desea asistir")
+        conection = getConection()
+        cursor = conection.cursor()
+        cursor.execute("insert into asistencia values (0,'"+id+"','"+correo+"',true")
+        conection.commit()
+        cursor.close()
+        conection.close()
+        print("Asistencia cumplida")
+        return True
+    except:
+        return False
 
 def Menu():
     verdad=True
@@ -261,8 +317,12 @@ def Menu():
 
 
 
+
+
+
 #CreacionCuentaArtista("tago2000@hotmail.com","tago","tumbaco","disenador","un crack")
 #consultarEventosViejos("thiago@hotmail.com")
 #buscarAsistentes(12345)
 #menuEasy()
-Menu()
+#Menu()MostrarEventosAc
+MostrarEventosActuales()
