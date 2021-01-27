@@ -1,0 +1,252 @@
+
+create Table Artista(
+	correo varchar(30) primary key not null,
+    contra varchar(30) not null,
+    nombre varchar(20) not null,
+    apellido varchar(20) not null,
+    profesion varchar(15) not null,
+    descripcion varchar(200)  
+);
+create table Calificacion(
+	IDcali int primary key not null auto_increment,
+    calificacion decimal(4,2) not null,
+    fecha date,
+    artista varchar(30) not null,
+    cliente varchar(30) not null,
+    foreign key(artista) references artista(correo),
+    foreign key(cliente) references cliente(correo)
+);
+
+create table Profesion(
+	IDprof int primary key not null,
+    profesion varchar(20) not null
+);
+create table Artista_Profesion(
+	artista varchar(30) not null,
+    profesion int not null,
+    primary key(artista,profesion),
+    foreign key (artista) references Artista(correo),
+    foreign key (profesion) references Profesion(IDprof)
+);
+
+create table Evento(
+	IdEvento int primary key not null auto_increment,
+    titulo varchar(40) not null,
+    descripcion varchar(200),
+    duracion decimal(4,1) not null,
+    fechaInicio date,
+    tipo enum('Publico','Privado'),
+    costo decimal(4,1),
+	correoArt varchar(30),
+    foreign key(correoArt)
+    REFERENCES Artista(correo)
+);
+
+#creacion cuenta artista //corrido
+Delimiter %
+create procedure CrearCuentaArtista(in correo varchar(30), in contra varchar(30),in nombre varchar(20), in apellido varchar(30),
+	in profesion varchar(15), in descrip varchar(200) )
+    begin 
+		 insert into artista values (correo, contra, nombre,apellido, profesion,descrip);
+    end;
+% Delimiter;
+#Creacion de eventos //corrido
+
+Delimiter %
+create procedure RegistrarEvento(in title varchar(40),in descrip varchar(200), in duration decimal(4,1)
+,in fecha date,in tipe enum('Publico','Privado'), in costo decimal(4,1), in artista varchar(30))
+begin
+	insert into Evento values(0,title,descrip,duration,fecha,tipe,costo,artista);
+end;
+% Delimiter;
+
+# Metodo para crear vista eventos //corrido
+Delimiter %
+	create view EventosArtista as select titulo,descripcion,duracion,fechaInicio,tipo,costo from evento;
+% Delimiter;
+
+Delimiter%
+create procedure AsitentesEvento(in Evento int)
+begin
+	set @hola=(select cli.correo,cli.nombre,cli.apellido from asistencia as asis join cliente as cli on asis.cliente=cli.correo where asis.evento=Evento);
+    return  @hola;
+end;
+% Delimiter;
+
+START TRANSACTION;
+DELIMITER //
+CREATE PROCEDURE CrearCuentaCliente(in correo varchar(255), in contra varchar(255), in nombre varchar(20), in apellido varchar(20))
+BEGIN
+	SELECT c.correo into @correo FROM cliente c WHERE c.correo=correo;
+    IF(@correo is NULL) THEN
+		INSERT INTO cliente VALUES(correo, contra, nombre, apellido);
+	ELSE
+		SIGNAL SQLSTATE '45000' SET message_text='Este correo ya tiene cuenta!';
+        ROLLBACK;
+	END IF;
+END;
+//
+DELIMITER ; 
+COMMIT;
+2-------------
+START TRANSACTION;
+DELIMITER %
+CREATE PROCEDURE ElegirEventoCliente(in correo varchar(255), in id int)
+BEGIN
+		Select e.idEvento into @evento from evento e where e.idEvento=id;
+        IF(@evento IS NULL) THEN
+			INSERT INTO asistencia VALUES(0, id, correo, TRUE);
+		ELSE
+			SIGNAL SQLSTATE '45000' SET message_text='El evento ingresado no existe';
+		END IF;
+END;
+%
+DELIMITER ;
+COMMIT;
+
+-- El artista puede consultar el listado de asistentes a un evento pasado o que está vigente (SP)
+START TRANSACTION;
+DELIMITER $
+CREATE PROCEDURE ConsultarListadoAsistentes(in eventoid int, out asistente varchar(50))
+BEGIN 
+	Select e.idEvento into @evento from evento e where e.IdEvento=eventoid;
+    IF(@evento IS NULL) THEN
+		Select a.cliente into asistente from asistencia a where a.evento=eventoid;
+	ELSE
+		SIGNAL SQLSTATE '45000' SET message_text='El evento no existe!';
+	END IF;
+END;
+$
+DELIMITER ;
+COMMIT;
+select * from cliente;
+create table Cliente(
+	correo varchar(30) primary key not null,
+    contra varchar(30) not null,
+    nombre varchar(20) not null,
+    apellido varchar(20) not null
+);
+
+create table Asistencia(
+	 ID int primary key not null auto_increment,
+     evento int,
+    cliente varchar(30) not null,
+    asiste bool,
+    foreign key (evento) references Evento(IdEvento),
+    foreign key (cliente) references Cliente(correo)
+);
+
+
+create table Pago(
+	correo varchar(30) not null,
+    evento int not null,
+    FechaPago date not null,
+    pagado bool,
+    tipo enum("Tarjeta","Transferencia"),
+    primary key(correo,evento),
+    foreign key(correo) references Cliente(correo),
+    foreign key(evento) references Evento(IdEvento)
+);
+create table Solicitud(
+	cliente varchar(30) not null,
+    artista varchar(30) not null,
+    estado enum("Aceptada","No aceptada"),
+    descripcion varchar(200),
+    foreign key (cliente) references cliente(correo),
+    foreign key (artista) references artista(correo)
+);
+drop table artista;
+
+
+Insert into solicitud values('tago@hotmail.com', 'santiago@hotmail.com', 'Aceptada', 'Podrías hacer un tutorial para dibujar labios?');
+Insert into solicitud values('miguel@hotmail.com', 'pilar@hotmail.com', 'No aceptada', 'Podrías realizar un concurso de baile');
+Insert into solicitud values('selim@hotmail.com', 'vale@hotmail.com', 'Aceptada', 'Te gustaría dar bailoterapia para niños con sindrome down?');
+Insert into solicitud values('solyluna@hotmail.com', 'modesta@hotmail.com', 'Aceptada', 'Quisiera que realizaras un show para mi cumpleaños');
+Insert into solicitud values('killer@hotmail.com', 'piojo@hotmail.com', 'Aceptada', 'Podrías realizar un show para el cumpleaños de mi padre?');
+Insert into solicitud values('bedo@hotmail.com', 'kevin@hotmail.com', 'No aceptada', 'Podrías dar una clase de cortes de carne?');
+Insert into solicitud values('cesaca@hotmail.com', 'rober@hotmail.com', 'No aceptada', 'Podrías hacer una sesión de covers en estilo rock-metal');
+Insert into solicitud values('yisus@hotmail.com', 'cofla@hotmail.com', 'Aceptada', 'Quisiera que animaras la graduación de mi hijo');
+Insert into solicitud values('ianlo@hotmail.com', 'emilio@hotmail.com', 'No aceptada', 'Podrías realizar una sesion de beatbox');
+Insert into solicitud values('aminta@hotmail.com', 'fabricio@hotmail.com', 'Aceptada', 'Podrías realizar un tutorial de cumbia?');
+
+insert into Artista values("santiago@hotmail.com","1234","Santiago","Tumbaco","Cantante","cantante ecuatoriano con musicas en el top de latinoamerica.....");
+insert into Artista values("jimmy@hotmail.com","jimmy423","Jimmy","Saavedra","Pintor","pintor reconocido a nivel internacional, ganador del concurso latinoamericao de pintura....");
+insert into Artista values("luis@hotmail.com","1234","Luis","Macias","Rockero","rokero popular reconocido por su ultimo gran album.....");
+insert into Artista values("thiago@hotmail.com","thiago123","Thiago","Tumbaco","Locutor","comenta cheverisimo");
+insert into Artista values("sebastian@hotmail.com","1234","Sebastian","Tumbaco","Violinista","toca cheverisimo");
+insert into Artista values("melanny@hotmail.com","mela12316","Melanny","Poveda","Poveda","baila cheverisimo");
+insert into Artista values("Alison@hotmail.com","loca12","Alison","Poveda","DJ","mezcla cheverisimo");
+insert into Artista values("steven@hotmail.com","soporte","Steven","Rocafuerte","Cantante","canta cheverisimo");
+insert into Artista values("jhosue@hotmail.com","231231","Jhosue","Zuñiga","Pintor","pinta cheverisimo");
+insert into Artista values("kody@hotmail.com","kodyrq","Kody","Tumbaco","DJ","mezcla diferentes musicas, a participado en diferentes tipos de eventos internacionales...");
+
+
+Insert into evento values ("12345","La llorona","obra mexicana",1,"2020-12-3","Publico",200,"jimmy@hotmail.com");
+Insert into evento values("62527","La divina comedia","obra de teatro",4,"2021-1-1","Privado",350,"santiago@hotmail.com");
+Insert into evento values("09876","Huasipungo","obra literaria ecuatoriana",1,"2021-1-23","Público",60,"luis@hotmail.com");
+Insert into evento values("56237","La cantora","interpretación musical",2,"2020-12-26","Privado",55,"thiago@hotmail.com");
+Insert into evento values("52713","cooperando avanza","donaciones",1 ,"2020-12-24","Público",30,"sebastian@hotmail.com");
+Insert into evento values("87124","cánticos de esperanza","interpretación musical",3,"2021-1-6","Publico",15,"Alison@hotmail.com");
+Insert into evento values("24516","Juventud pasionista","donaciones",1,"2021-1-28","Público",20,"steven@hotmail.com");
+Insert into evento values("12466","La casa de los espíritus","obra de teatro chilena",1, "2021-3-23","Privado",70,"kody@hotmail.com");
+Insert into evento values("12477","Don quijote de la mancha","obra de teatro española",1, "2021-4-23","Privado",70,"jhosue@hotmail.com");
+Insert into evento values("12888","La culpa es de la vaca","obra de teatro basada en libro",2,"2021-7-3","Público",100,"thiago@hotmail.com");
+
+
+insert into cliente values("tago@hotmail.com","1234","Santiago","Tumbaco");
+insert into cliente values("mela@hotmail.com","mela123","Melanny","Poveda");
+insert into cliente values("omar@hotmail.com","omar213","Omar","Arias");
+insert into cliente values("angelica@hotmail.com","1234","Angelica","Cela");
+insert into cliente values("jara@hotmail.com","jara123","Cristina","Jara");
+insert into cliente values("cristina@hotmail.com","1234","Cristina","Arellano");
+insert into cliente values("alex@hotmail.com","aleslopes","Alex","Lopez");
+insert into cliente values("borja@hotmail.com","birka","Jorge","Borja");
+insert into cliente values("acosta@hotmail.com","birka123","Leonel","Acosta");
+insert into cliente values("chunga@hotmail.com","lolcito","Christopher","Chunga");
+
+insert into asistencia values(1,"12345","mela@hotmail.com",true);
+insert into asistencia values(2,"12345","tago@hotmail.com",true);
+insert into asistencia values(3,"12345","omar@hotmail.com",true);
+insert into asistencia values(4,"12345","jara@hotmail.com",true);
+insert into asistencia values(5,"87124","alex@hotmail.com",false);
+insert into asistencia values(6,"87124","acosta@hotmail.com",false);
+insert into asistencia values(7,"87124","chunga@hotmail.com",true);
+insert into asistencia values(8,"87124","jara@hotmail.com",false);
+insert into asistencia values(9,"52713","cristina@hotmail.com",true);
+insert into asistencia values(10,"52713","chunga@hotmail.com",true);
+insert into asistencia values(11,"52713","angelica@hotmail.com",true);
+
+
+insert into pago values("tago@hotmail.com","12345","2020-12-3",true,"Transferencia");
+insert into pago values("mela@hotmail.com","12345","2020-12-3",true,"Tarjeta");
+insert into pago values("omar@hotmail.com","12345","2020-12-3",true,"Transferencia");
+insert into pago values("jara@hotmail.com","12345","2020-12-3",true,"Tarjeta");
+insert into pago values("alex@hotmail.com","87124","2020-12-3",true,"Tarjeta");
+insert into pago values("acosta@hotmail.com","87124","2020-12-3",true,"Transferencia");
+insert into pago values("chunga@hotmail.com","87124","2020-12-3",true,"Tarjeta");
+insert into pago values("jara@hotmail.com","87124","2020-12-3",true,"Tarjeta");
+insert into pago values("cristina@hotmail.com","52713","2020-12-3",true,"Transferencia");
+insert into pago values("angelica@hotmail.com","52713","2020-12-3",true,"Transferencia");
+
+insert into calificacion values(1,8,"2020-12-3","luis@hotmail.com","angelica@hotmail.com");
+insert into calificacion values(2,10,"2020-12-3","luis@hotmail.com","cristina@hotmail.com");
+insert into calificacion values(3,6,"2020-12-3","luis@hotmail.com","jara@hotmail.com");
+insert into calificacion values(4,9,"2020-12-3","santiago@hotmail.com","angelica@hotmail.com");
+insert into calificacion values(5,8,"2020-12-3","santiago@hotmail.com","mela@hotmail.com");
+insert into calificacion values(6,10,"2020-12-3","melanny@hotmail.com","angelica@hotmail.com");
+insert into calificacion values(7,10,"2020-12-3","melanny@hotmail.com","tago@hotmail.com");
+insert into calificacion values(8,8,"2020-12-3","jhosue@hotmail.com","angelica@hotmail.com");
+insert into calificacion values(9,9,"2020-12-3","luis@hotmail.com","cristina@hotmail.com");
+insert into calificacion values(10,4,"2020-12-3","jimmy@hotmail.com","angelica@hotmail.com");
+insert into calificacion values(11,10,"2020-12-3","kody@hotmail.com","alex@hotmail.com");
+create user 'Arista'@'localhost' identified by 'art1sta';
+GRANT SELECT ON Procedure aplicattion.RegistrarEvento TO 'Arista'@'localhost';
+GRANT SELECT ON Procedure aplicattion.CrearCuentaArtista TO 'Arista'@'localhost';
+GRANT SELECT ON View aplicattion.EventosArtista TO 'Arista'@'localhost';
+Create user 'luismacias'@'localhost' identified by 'lu1sm4c1as';
+grant all privileges on application.* to 'luismacias'@'localhost' with grant option;
+create user 'Cliente'@'localhost' identified by 'cl';
+grant select on application.consultareventospagados to 'Cliente'@'localhost';
+grant select on application.mostrarevento to 'Cliente'@'localhost';
+grant execute on procedure application.CrearCuentaCliente TO 'Cliente'@'localhost';
+grant execute on procedure application.ElegirEventoCliente TO 'Cliente'@'localhost';

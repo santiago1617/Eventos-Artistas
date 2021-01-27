@@ -89,7 +89,8 @@ def CreacionCuentaArtista(correo,contra,nombre,apellido,profesion,descripcion):
     conection =Conexion
     cursor = conection.cursor()
     #OJO con las comillas simples en cada variable
-    cursor.execute("INSERT INTO Artista(correo,nombre,apellido,profesion,descripcion) VALUES('"+correo+"','"+contra+"','"+nombre+"','"+apellido+"','"+profesion+"','"+descripcion+"')")
+    cursor.execute("call CrearCuentaArtista"+ "('"+correo+"','"+contra+"','"+nombre+"','"+apellido+"','"+profesion+"','"+descripcion+"')");
+    #cursor.execute("INSERT INTO Artista(correo,nombre,apellido,profesion,descripcion) VALUES('"+correo+"','"+contra+"','"+nombre+"','"+apellido+"','"+profesion+"','"+descripcion+"')")
     #cursor.execute( "INSERT INTO Artista(correo,nombre,apellido,profesion,descripcion) VALUES('tago@hotmail.com','tago','tumbaco','disenador','un crack')")
     conection.commit()
     cursor.close()
@@ -175,7 +176,7 @@ def VerificarExistencia():
 def creacionCuentaCliente(correo,contra, nombre, apellido):
     conection = getConection()
     cursor = conection.cursor()
-    cursor.execute("call CrearCuentaCliente("+correo+", "+contra+", "+nombre+", "+apellido+")")
+    cursor.execute("call CrearCuentaCliente('"+correo+"', '"+contra+"', '"+nombre+"', '"+apellido+"')")
     conection.commit()
     cursor.close()
     conection.close()
@@ -184,7 +185,7 @@ def creacionCuentaCliente(correo,contra, nombre, apellido):
 def consultarEventosCliente(correo):
     conection = getConection()
     cursor = conection.cursor()
-    cursor.execute("Select * from MostrarEvento m where m.correo="+correo+"")
+    cursor.execute("Select * from MostrarEvento m where m.correo='"+correo+"'")
     datos = cursor.fetchall()
     cursor.close()
     conection.close()
@@ -221,7 +222,7 @@ def elegirEventoCliente(correo):
         id=input("Elija la ID del evento que desea asistir")
         conection = getConection()
         cursor = conection.cursor()
-        cursor.execute("call ElegirEventoCliente("+correo+", id")
+        cursor.execute("call ElegirEventoCliente('"+correo+"','"+id+"'")
         conection.commit()
         cursor.close()
         conection.close()
@@ -335,8 +336,8 @@ def Menu():
                         tipo="cliente"
                         correo=correo3
                         bandera=False
-                   except:
-                    print("||||||  Este correo ya ha sido registrado  |||||")
+                    except:
+                        print("||||||  Este correo ya ha sido registrado  |||||")
     verdad3=True
     while(verdad3):
         if tipo=="artista":
@@ -413,5 +414,4 @@ def Menu():
 #consultarEventosViejos("thiago@hotmail.com")
 #buscarAsistentes(12345)
 #menuEasy()
-#Menu()MostrarEventosAc
-MostrarEventosActuales()
+Menu()
